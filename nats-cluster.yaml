@@ -1,0 +1,13 @@
+apiVersion: nats.io/v1alpha2
+kind: NatsCluster
+metadata:
+  name: dennis-nats
+  namespace: prod
+spec:
+  size: 3
+  version: "1.3.0"
+
+  pod:
+    enableConfigReload: true
+  auth:
+    enableServiceAccounts: true

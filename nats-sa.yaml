@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nats-admin-user
+  namespace: prod
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nats-user
+  namespace: prod
+---

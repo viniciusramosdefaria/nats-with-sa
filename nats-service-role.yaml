@@ -1,0 +1,25 @@
+apiVersion: nats.io/v1alpha2
+kind: NatsServiceRole
+metadata:
+  name: nats-user
+  namespace: prod 
+
+  # Specifies which NATS cluster will be mapping this account.
+  labels:
+    nats_cluster: dennis-nats
+spec:
+  permissions:
+    publish: ["foo.*", "foo.bar.quux"]
+    subscribe: ["foo.bar"]
+---
+apiVersion: nats.io/v1alpha2
+kind: NatsServiceRole
+metadata:
+  name: nats-admin-user
+  namespace: prod
+  labels:
+    nats_cluster: dennis-nats
+spec:
+  permissions:
+    publish: [">"]
+    subscribe: [">"]
