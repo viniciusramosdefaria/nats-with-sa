@@ -50,12 +50,13 @@ func main() {
 	defer nc.Close()
 
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(3)
 
 	go request(nc, &wg)
 	go subscribe(nc, &wg)
 
 	wg.Wait()
+
 }
 
 func subscribe(nc *nats.Conn, wg *sync.WaitGroup) {

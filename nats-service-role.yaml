@@ -9,8 +9,8 @@ metadata:
     nats_cluster: dennis-nats
 spec:
   permissions:
-    publish: ["foo.*", "foo.bar.quux"]
-    subscribe: ["foo.bar"]
+    publish: ["foo.*", "foo.bar.quux", "_INBOX.>"]
+    subscribe: ["foo.bar", "_INBOX.>"]
 ---
 apiVersion: nats.io/v1alpha2
 kind: NatsServiceRole
