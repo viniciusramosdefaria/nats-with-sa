@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -8,24 +9,34 @@ import (
 	"sync"
 	"time"
 
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/nats-io/nats.go"
 )
 
 const (
-	NatsHost      = "NATS_ADDR"
-	NatsUser      = "NATS_USER"
-	natsTokenPath = "/var/run/secrets/nats.io/token"
+	ConsulHost              = "CONSUL_HTTP_ADDR"
+	serviceAccountTokenPath = "/run/secrets/kubernetes.io/serviceaccount/token"
+	consulAuthMethod        = "auth-method-consul-auth"
 )
 
 var (
-	natsHost = os.Getenv(NatsHost)
-	natsUser = os.Getenv(NatsUser)
-	subj     = "foo.bar"
-	payload  = "All is Well"
+	subj    = "foo.bar"
+	payload = "All is Well"
+
+	consulHost = os.Getenv(ConsulHost)
 )
 
-func Token() (string, error) {
-	token, err := ioutil.ReadFile(natsTokenPath)
+type Configs struct {
+	Nats Nats `json: "nats"`
+}
+
+type Nats struct {
+	Host string `json: "host"`
+	User string `json: "user"`
+}
+
+func Token(path string) (string, error) {
+	token, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -33,8 +44,45 @@ func Token() (string, error) {
 }
 
 func main() {
+	consulToken, err := Token(serviceAccountTokenPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	natsToken, err := Token()
+	log.Println("Connecting to consul")
+	consulctl, err := consulapi.NewClient(consulapi.DefaultConfig())
+	if err != nil {
+		panic(err)
+	}
+
+	acltoken, _, err := consulctl.ACL().Login(&consulapi.ACLLoginParams{
+		AuthMethod:  consulAuthMethod,
+		BearerToken: consulToken,
+	}, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Reading configs...")
+
+	kv := consulctl.KV()
+
+	cfgBytes, _, err := kv.Get("/configs", &consulapi.QueryOptions{
+		Namespace:  acltoken.Namespace,
+		Datacenter: "dc1",
+		Token:      acltoken.SecretID,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var cfg Configs
+	if err := json.Unmarshal(cfgBytes.Value, &cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	natsToken, err := Token(serviceAccountTokenPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,7 +91,10 @@ func main() {
 
 	log.Println("Connecting to nats server")
 
-	nc, err := nats.Connect(fmt.Sprintf("nats://%s:%s@%s:4222", natsUser, natsToken, natsHost))
+	user := cfg.Nats.User
+	host := cfg.Nats.Host
+
+	nc, err := nats.Connect(fmt.Sprintf("nats://%s:%s@%s:4222", user, natsToken, host))
 	if err != nil {
 		log.Fatal(err)
 	}
