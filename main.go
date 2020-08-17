@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/nats-io/nats.go"
 	"io/ioutil"
 	"log"
 	"os"
 	"sync"
+	"time"
+
+	"github.com/nats-io/nats.go"
 )
 
 const (
@@ -18,6 +20,8 @@ const (
 var (
 	natsHost = os.Getenv(NatsHost)
 	natsUser = os.Getenv(NatsUser)
+	subj     = "foo.bar"
+	payload  = "All is Well"
 )
 
 func Token() (string, error) {
@@ -45,31 +49,41 @@ func main() {
 	}
 	defer nc.Close()
 
-	log.Println("Publishing to nats server")
-
-	if err := nc.Publish("foo.bar", []byte("All is Well")); err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Published successfully")
-
 	wg := sync.WaitGroup{}
-	wg.Add(10)
+	wg.Add(2)
 
+	go request(nc, &wg)
+	go subscribe(nc, &wg)
 
+	wg.Wait()
+}
+
+func subscribe(nc *nats.Conn, wg *sync.WaitGroup) {
 	log.Println("Consuming nats queue")
 
-	// Create a queue subscription on "updates" with queue name "workers"
-	if _, err := nc.QueueSubscribe("foo.bar", "worker", func(m *nats.Msg) {
-
+	if _, err := nc.QueueSubscribe(subj, "worker", func(m *nats.Msg) {
 		log.Println(string(m.Data))
+		m.Respond([]byte("OK"))
 		wg.Done()
 
 	}); err != nil {
 		log.Fatal(err)
 	}
 
-	// Wait for messages to come in
-	wg.Wait()
+}
 
+func request(nc *nats.Conn, wg *sync.WaitGroup) {
+	log.Println("Requesting to nats server")
+
+	msg, err := nc.Request(subj, []byte(payload), 5*time.Second)
+	if err != nil {
+		if nc.LastError() != nil {
+			log.Fatalf("%v for request", nc.LastError())
+		}
+		log.Fatalf("%v for request", err)
+	} else {
+		log.Printf("Published [%s] : '%s'", subj, payload)
+		log.Printf("Received  [%v] : '%s'", msg.Subject, string(msg.Data))
+	}
+	wg.Done()
 }
