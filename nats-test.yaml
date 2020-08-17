@@ -34,10 +34,8 @@ spec:
                       path: "token"
       containers:
         - env:
-            - name: NATS_ADDR
-              value: dennis-nats
-            - name: NATS_USER
-              value: nats-user
+            - name: CONSUL_HTTP_ADDR
+              value: http://consul-test-consul-server.prod.svc.cluster.local:8500
           image: viniciusramosdefaria/nats-test:latest
           imagePullPolicy: Always
           name: nats-test

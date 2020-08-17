@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nats-io/nats.go"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,13 +11,13 @@ import (
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/nats-io/nats.go"
 )
 
 const (
 	ConsulHost              = "CONSUL_HTTP_ADDR"
 	serviceAccountTokenPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 	consulAuthMethod        = "auth-method-consul-auth"
+	natsTokenPath           = "/var/run/secrets/nats.io/token"
 )
 
 var (
@@ -82,7 +83,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	natsToken, err := Token(serviceAccountTokenPath)
+	log.Println(cfg)
+
+	natsToken, err := Token(natsTokenPath)
 	if err != nil {
 		log.Fatal(err)
 	}
