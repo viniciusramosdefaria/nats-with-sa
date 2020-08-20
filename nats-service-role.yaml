@@ -1,7 +1,7 @@
 apiVersion: nats.io/v1alpha2
 kind: NatsServiceRole
 metadata:
-  name: nats-user
+  name: nats-gateway
   namespace: prod 
 
   # Specifies which NATS cluster will be mapping this account.
@@ -9,17 +9,33 @@ metadata:
     nats_cluster: dennis-nats
 spec:
   permissions:
-    publish: ["foo.*", "foo.bar.quux", "_INBOX.>"]
-    subscribe: ["foo.bar", "_INBOX.>"]
+    publish: ["build_book", "_INBOX.>"]
+    subscribe: ["_INBOX.>"]
 ---
 apiVersion: nats.io/v1alpha2
 kind: NatsServiceRole
 metadata:
-  name: nats-admin-user
+  name: nats-k8s-handler
   namespace: prod
+
+  # Specifies which NATS cluster will be mapping this account.
   labels:
     nats_cluster: dennis-nats
 spec:
   permissions:
-    publish: [">"]
-    subscribe: [">"]
+    publish: ["create_book", "_INBOX.>"]
+    subscribe: ["build_book","_INBOX.>"]
+---
+apiVersion: nats.io/v1alpha2
+kind: NatsServiceRole
+metadata:
+  name: nats-persistence-handler
+  namespace: prod
+
+  # Specifies which NATS cluster will be mapping this account.
+  labels:
+    nats_cluster: dennis-nats
+spec:
+  permissions:
+    publish: ["_INBOX.>"]
+    subscribe: ["create_book","_INBOX.>"]
