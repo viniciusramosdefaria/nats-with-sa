@@ -5,9 +5,11 @@ metadata:
   namespace: prod
 spec:
   size: 3
-  version: "1.3.0"
-
+  version: "1.4.1"
   pod:
     enableConfigReload: true
+    enableMetrics: true
+    metricsImage: "synadia/prometheus-nats-exporter"
+    metricsImageTag: "0.6.2"
   auth:
     enableServiceAccounts: true
